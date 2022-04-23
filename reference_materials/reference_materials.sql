@@ -1,15 +1,17 @@
-
 -------------------------------------------------
 ---- Creating Tables and Inserting/Updating Info----
 
 -- Create Table
 CREATE Table EmployeesListing
 (
-EmployeeID int,
-FirstName varchar(50),
-LastName varchar(50),
-Age int,
-Gender varchar(50)
+    EmployeeID INT PRIMARY KEY IDENTITY(1,1), -- IDENTITY will auto-increase by 1 when new records are inserted
+    FirstName VARCHAR(50) NOT NULL, -- This creates a constraint that an insertion cannot have null values for this column
+    LastName VARCHAR(50),
+    Age INT DEFAULT 0, -- Setting a default value
+    Gender VARCHAR(50) CHECK ( Gender IN ('Male' , 'Female') ), -- This creates a constraint on the input values
+    TimeInserted DATETIME DEFAULT CURRENT_TIMESTAMP -- This creates a timestamp when a new record is inserted
+
+    CONSTRAINT age_gen_con CHECK (Age > 18 AND GENDER IN ('Male' , 'Female') ) -- This creates a constraint on multiple columns / conditions
 )
 --
 
@@ -17,27 +19,49 @@ Gender varchar(50)
 DROP TABLE IF EXISTS #Temp_Employee2 -- this delete existing temp table if any
 CREATE TABLE #Temp_Employee2
 (
-JobTitle varchar(50),
-EmployeesPerJob int,
-AvgAge int,
-AvgSalary int
+JobTitle VARCHAR(50),
+EmployeesPerJob INT,
+AvgAge INT,
+AvgSalary INT
 )
 --
 
--- Inserting information into the table
+-- Inserting records into table
 INSERT INTO EmployeesListing VALUES
 (1002, 'Pam', 'Beasley', 30, 'Female'),
 (1003, 'Dwight', 'Schrute', 29, 'Male')
 --
 
+-- Inserting into specific columns
+INSERT INTO 
+    EmployeeListing(EmployeeID, FirstName)
+VALUES
+    ('1014', 'TEST')
+--
+
+-- Adding new columns
+ALTER TABLE EmployeeListing
+ADD EmployeeAddress VARCHAR(255)
+
+-- Dropping existing columns
+ALTER TABLE EmployeeListing
+DROP COLUMN EmployeeAddress
+
 -- Updating data in table
 UPDATE EmployeesListing
-SET EmployeeID = 1012, Age = 31, Gender = 'Female' -- this is where we specify the values that we want to update
-WHERE FirstName = 'Holly' AND LastName = 'Flax'
+SET 
+    -- this is where we specify the values that we want to update
+    EmployeeID = 1012, 
+    Age = 31, 
+    Gender = 'Female' 
+WHERE
+    FirstName = 'Holly' AND 
+    LastName = 'Flax'
  
--- Deleting data in table
-DELETE EmployeesListing
+-- Deleting record in table
+DELETE FROM EmployeesListing
 WHERE EmployeeID = 1005
+-- 
 
 ---- Creating Stored Procedures ----
 GO
@@ -114,6 +138,7 @@ ON tableA_CTE.new_col_A_name = tableB_CTE.new_col_C_name
 SELECT * FROM table_name
     WHERE col_name_A = 'this is what I want'
     WHERE col_name_A IN ('itemA', 'itemB')
+    WHERE col_name_A NOT IN ('itemA', 'itemB')
     WHERE col_name_A = 'itemA' OR col_name_A = 'itemB'
     WHERE col_name_A > 99
     WHERE col_name_A <>
@@ -123,7 +148,19 @@ SELECT * FROM table_name
 
 --
 SELECT * FROM table_name
+    WHERE NOT col_name_A = 'Berlin' -- Return everything not Berlin
+--
+
+-- Filtering for null or non-null values
+SELECT * FROM table_name
+    WHERE col_name_A IS NULL 
+    WHERE col_name_A IS NOT NULL
+--
+
+--
+SELECT * FROM table_name
     WHERE col_name_A BETWEEN 99 AND 999
+    WHERE col_name_A NOT BETWEEN 99 AND 999
 --
 
 -- RegEx
@@ -131,6 +168,13 @@ SELECT * FROM table_name
     WHERE col_name_A LIKE 'Mar%' -- % represent any number of characters and is NOT case sensitive
     WHERE col_name_A LIKE 'Mar_' -- underscore('_') represent a single random character
     WHERE col_name_A LIKE 'G\_007' -- \ is an escape key
+--
+
+--
+SELECT * FROM table_name
+    WHERE col_name_A LIKE '[acs]%' -- select all records where the first letter is "a", "c" or "s"
+    WHERE col_name_A LIKE '[!acs]%' -- select all records where the first letter is NOT "a", "c" or "s"
+    WHERE col_name_A LIKE '[a-f]%' -- select all records where the first letter is "a" to "f"
 --
 
 ---- Grouping Data ----
@@ -193,6 +237,11 @@ SELECT * FROM tableB
 -- Sorting
 SELECT col_name_A, col_name_B FROM table_name
 ORDER BY col_name_A ASC, col_name_B DESC
+--
+
+--
+SELECT * FROM table_name
+ORDER BY col_name_A, col_name_B -- This will sort the result alphabetically first by col_name_A then col_name_B
 --
 
 -- Limit the number of returned rows
