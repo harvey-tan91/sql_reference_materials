@@ -41,7 +41,7 @@ VALUES
 
 -- Adding new columns
 ALTER TABLE EmployeeListing
-ADD EmployeeAddress VARCHAR(255)
+ADD EmployeeAddress VARCHAR(255) DEFAULT 'JAPAN'
 
 -- Dropping existing columns
 ALTER TABLE EmployeeListing
@@ -73,6 +73,8 @@ SELECT * FROM tableA
 ---- Creating and Altering View ----
 /* 
 1. Views always stay up to date
+
+An updatable view is when you update the view, you update the original table where the view is referencing from
 2. Updatable views cannot include
 --- Aggregate functions
 --- Group By
@@ -81,22 +83,25 @@ SELECT * FROM tableA
 --- DISTINCT
 --- {LEFT JOIN, RIGHT JOIN, OUTER JOIN}
 --- SUBQUERIES
+
+Notes:
+-- Creating a view will store the structure of the original table that was used to create the view
+-- If there is a change in the structure of the original table used to create the view, it will not get captured in the view
+
 */
 
 --
-GO
 CREATE VIEW sample_view_name AS
 SELECT * FROM tableA
     WHERE col_name_A > '1 Jan 2021'
-GO
+WITH CHECK OPTION -- this will ensure that any insert operation into the view fulfilled the where conditions 
+
 -- 
 
 --
-GO
 ALTER VIEW sample_view_name AS
 SELECT * FROM tableA
     WHERE col_name_A > '1 June 2021'
-GO
 --
 
 ---- Common Table Expression --- 
@@ -115,21 +120,37 @@ SELECT new_col_A_name, new_col_B_name FROM tableA_CTE
 
 -- Create a double CTE
 WITH
-tableA_CTE (new_col_A_name, new_col_B_name) AS
-(SELECT col_name_A, 
-        col_name_B FROM tableA)
-, 
-tableB_CTE (new_col_C_name, new_col_D_name) AS
-(SELECT col_name_C, 
-        col_name_D FROM tableB)
+    tableA_CTE (new_col_A_name, new_col_B_name) AS
+        (SELECT col_name_A, col_name_B FROM tableA) , 
 
-SELECT  new_col_A_name, 
-        new_col_B_name,
-        new_col_C_name
-FROM tableA_CTE
-INNER JOIN
-tableB_CTE
-ON tableA_CTE.new_col_A_name = tableB_CTE.new_col_C_name
+    tableB_CTE (new_col_C_name, new_col_D_name) AS
+        (SELECT col_name_C, col_name_D FROM tableB)
+SELECT  
+    t1.new_col_A_name, 
+    t1.new_col_B_name,
+    t2.new_col_C_name
+FROM tableA_CTE as t1
+INNER JOIN tableB_CTE t2
+ON t1.new_col_A_name = t2.new_col_C_name
+--
+
+--
+with 
+	total_sales_cte (store_id, total_sales_per_store) as
+		(
+		select s.store_id, sum(s.cost) as total_sales_per_store
+		from sales s
+		group by s.store_id
+		),
+	avg_sales_cte (average_sales_across_all_store) as
+		( 
+		select AVG(tbl.total_sales_per_store) as avg_sales_from_all_stores from 
+		total_sales_cte tbl
+		)
+select * 
+from total_sales_cte t1, avg_sales_cte av
+where t1.total_sales_per_store > av.average_sales_across_all_store
+
 --
 
 ---- Filtering Data ----
@@ -185,14 +206,95 @@ GROUP BY col_name_A
 HAVING SUM(col_name_C) > 999
 --
 
----- Partitioning Data ----
+---- Window Functions ----
 
 --
 SELECT 
     col_name_A,
-    SUM(col_name_B) OVER (PARTITION BY col_name_C)
+    SUM(col_name_B) OVER (PARTITION BY col_name_C),
+    COUNT(col_name_B) OVER (PARTITION BY col_name_C),
+    MAX(col_name_B) OVER (PARTITION BY col_name_C),
+    AVG(col_name_B) OVER (PARTITION BY col_name_C),
 FROM tableA
 --
+
+--
+SELECT *, 
+    ROW_NUMBER() OVER (PARTITION BY DepartmentName ORDER BY EmployeeID)
+    -- This creates a distinct row number over the department window of rows and order by the EmployeeID
+FROM 
+    EmployeeListing
+--
+
+--
+SELECT *, 
+    RANK() OVER (PARTITION BY DepartmentName ORDER BY Salary),
+    -- This creates a rank number based on the salary in the department
+    DENSE_RANK() OVER (PARTITION BY DepartmentName ORDER BY Salary)
+FROM 
+    EmployeeListing
+--
+
+--
+SELECT *,
+    LAG(Salary) OVER (PARTITION BY DepartmentName ORDER BY EmployeeID) as previous_emp_salary,
+    -- This creates a column that contains the previous 1 employee salary based on the ordering of the EmployeeID
+
+    LAG(Salary,2,0) OVER (PARTITION BY DepartmentName ORDER BY EmployeeID) as previous_emp_salary,
+    -- This looks at the previous 2 employees with default value equals to 0 if there is no two previous employees
+
+    LEAD(Salary) OVER (PARTITION BY DepartmentName ORDER BY EmployeeID) as next_emp_salary,
+    -- This creates a column that contains the next 1 employee salary based on the ordering of the EmployeeID
+
+    LEAD(Salary,2,0) OVER (PARTITION BY DepartmentName ORDER BY EmployeeID) as next_emp_salary
+    -- This looks at the next 2 employees with default value equals to 0 if there is no two next employees
+FROM 
+    EmployeeListing
+--
+
+--
+SELECT *, 
+    FIRST_VALUE(product_name) over (partition by product_category order by price DESC) as most_expensive_product,
+        -- This creates a column that contain the first value of the product_name column based on the highest price product in the product_category
+
+    LAST_VALUE(product_name) over 
+        (partition by product_category order by price DESC
+        range between unbounded preceding and current row
+        ) -- This is the default frame when using the LAST_VALUE function
+        -- During the iteration within the window, the record will look at the first record and the current record to pull out the last value
+        -- It does not look at all the records within the same window 
+        AS least_expensive_product,
+
+    LAST_VALUE(product_name) over 
+        (partition by product_category order by price DESC
+        range between unbounded preceding and current unbounded following) 
+        -- This will allow all the records to be taken into consideration within the same window
+        AS least_expensive_product,
+
+    NTH_VALUE(product_name, 2) over
+        (PARTITION by product_category order by price DESC
+        range between unbounded preceding and current row -- This is the default frame
+        )    
+        -- NTH_VALUE function is not available in MS SQL 
+        -- This wiLL display the 2th value in the said window
+
+    NTILE(3) OVER
+        (PARTITION BY product_category ORDER BY price DESC)
+        -- This create 3 distinct buckets within the window  
+
+    CUME_DIST() OVER (ORDER BY price DESC) AS price_cumu_dist
+        -- This will create a cumulative distribution value column based on the price column
+
+FROM 
+    product
+--
+
+---- Correlated Subqueries ----
+/*
+In correlated subqueries, for every record in the main query, the sub-query is executed as well
+Unlike in most subquery statmenets, where the subquery gets executed first, the main query gets executed first in a correlated subquery
+
+*/ 
 
 ---- Conditional Columns ----
 
@@ -209,16 +311,38 @@ SELECT
 FROM table_name
 --
 
+n
+
 ---- Join Data ----
 
 --
 SELECT tableA.col_name_A , tableB.col_name_B FROM
 tableA
-INNER JOIN -- {FULL JOIN, LEFT JOIN, CROSS JOIN}
--- INNER JOIN AND JOIN HAS THE SAME MEANING
+JOIN
 tableB
-ON tableA.col_name_C = tableB.col_name_C
---
+ON tableA.col_name_C = tableB.col_name_C -- this is not required if CROSS JOIN or NATURAL JOIN
+
+-- Type of Joins
+-- LEFT JOIN = LEFT OUTER JOIN
+-- RIGHT JOIN = RIGHT OUTER JOIN
+-- JOIN = INNER JOIN
+-- FULL JOIN = FULL OUTER JOIN
+-- NATURAL JOIN 
+-- CROSS JOIN
+-- SELF JOIN
+
+--- SELF JOIN---
+-- Use JOIN as the key word for SELF JOIN
+
+---CROSS JOIN---
+-- CROSS JOIN, for every record in the left table, it will match with all records on the right table
+-- CROSS JOIN can be used to retrieve information where there is no common keys
+
+---NATURAL JOIN---
+-- NATURAL JOIN lets SQL decide which column to join on based on the column name 
+-- If there are no columns that are sharing the same join, SQL will do a CROSS JOIN
+-- And if there are multiple columns from both tables that share the same name, SQL will use the said multiple columns to join
+-- Result set behaviour is similar to INNER JOIN
 
 -- UNION
 SELECT col_name_A, col_name_B FROM tableA
