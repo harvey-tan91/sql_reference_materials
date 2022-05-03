@@ -17,3 +17,7 @@ WHERE EmployeeID = 1005 -- this is to indicate which record get deleted
 TRUNCATE TABLE EmployeeListing
 
 
+-- If you want to use truncate and want to reverse the deletion of the records
+BEGIN TRANSACTION
+TRUNCATE TABLE EmployeeListing
+ROLLBACK
