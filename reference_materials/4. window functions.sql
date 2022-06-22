@@ -1,7 +1,5 @@
 /*
-
 - A window function performs a specific function OVER a window/subset of records
-
 */
 
 SELECT *,
@@ -21,6 +19,7 @@ FROM employee e
 
 
 -- ROW_NUMBER() creates a distinct row number over the stated window
+-- ROW_NUMBER function require the ORDER BY function
 SELECT *,
 	ROW_NUMBER() OVER(PARTITION BY dept_name ORDER BY emp_id)
 FROM employee
@@ -82,11 +81,9 @@ SELECT *,
 FROM employee
 
 
--- NITILE will create equal-sized bucket, it will create a column with numbers indicating the bucket which the records sit in
+-- NTILE will create equal-sized bucket, it will create a column with numbers indicating the bucket which the records sit in
 -- The NTILE function require the ORDER BY function
 SELECT *, 
 	NTILE(3) OVER (ORDER BY salary)
 FROM employee
-
-
 

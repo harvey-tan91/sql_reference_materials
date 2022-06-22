@@ -9,3 +9,9 @@ INSERT INTO
     EmployeeListing(EmployeeID, FirstName)
 VALUES
     ('1014', 'TEST')
+
+
+-- Inserting into temp tables with select statement
+INSERT INTO #temp_employee
+    SELECT EmployeeID, FirstName, Age FROM EmployeeListing
+    WHERE Gender = 'Male'

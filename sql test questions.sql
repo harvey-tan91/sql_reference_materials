@@ -79,7 +79,7 @@ hence figure out a way to not interchange the last record data.
 - From the weather table, 
 fetch all the records when London had less than 0 degree for 3 consecutive days or more.
 
----- With reference to the parent table ----
+---- With reference to the family table ----
 
 - Write a query to fetch the child name and their age corresponding to their parent name and their parent age
 

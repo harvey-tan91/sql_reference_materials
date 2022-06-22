@@ -17,7 +17,7 @@ GROUP BY CustState, CustCity
 
 
 -- The ROLLUP keyword can be used to derive the grand total figure
-SELECT dept_name, sum(salary) 
+SELECT dept_name, SUM(salary) 
 FROM employee
 GROUP BY dept_name WITH ROLLUP
 
@@ -28,11 +28,11 @@ GROUP BY CustState, CustCity WITH ROLLUP -- This will give us sub totals at the 
 
 
 -- The GROUPING SETS clause can also be used for aggregation
-SELECT e.dept_name, avg(e.salary) FROM 
+SELECT e.dept_name, AVG(e.salary) FROM 
 employee e
 GROUP BY GROUPING SETS
 	(
-	(e.dept_name), -- This is grouping
+	(e.dept_name), -- This is grouping by dept_name
 	() -- This generates the grand total figure
 	)
 
