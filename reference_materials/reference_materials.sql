@@ -57,10 +57,6 @@ Unlike in most subquery statmenets, where the subquery gets executed first, the 
 
 */ 
 
-
-
-
-
 -- UNION
 SELECT col_name_A, col_name_B FROM tableA
 UNION -- will remove duplicated rows

@@ -87,3 +87,4 @@ SELECT *,
 	NTILE(3) OVER (ORDER BY salary)
 FROM employee
 
+
