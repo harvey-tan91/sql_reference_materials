@@ -6,6 +6,7 @@ Materials:
 The output from OPENROWSET is a rowset to which an alias must be assigned. 
 The alias rows is used to name the resulting rowset.
 You can also specify multiple file paths in the BULK parameter, separating each path with a comma.
+The OPENROWSET function is not supported in dedicated SQL pool.
 
 https://mydatalake.blob.core.windows.net/data/files/**: All files in the files folder, and recursively its subfolders.
 
